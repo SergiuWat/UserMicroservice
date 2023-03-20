@@ -117,7 +117,6 @@ public class UserController {
     }
 
     @GetMapping("/test")
-    @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
     public String test(){
         return "test";
     }
