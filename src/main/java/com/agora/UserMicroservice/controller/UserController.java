@@ -23,6 +23,7 @@ import com.agora.UserMicroservice.repository.UserRepository;
 import com.agora.UserMicroservice.security.jwt.JwtUtils;
 import com.agora.UserMicroservice.security.services.RefreshTokenService;
 import com.agora.UserMicroservice.security.services.UserDetailsImpl;
+import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -30,6 +31,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -65,14 +67,20 @@ public class UserController {
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
-        String jwt = jwtUtils.generateJwtToken(userDetails);
+        String accessToken = jwtUtils.generateJwtToken(userDetails, 900000L);
+
+        String refreshToken = jwtUtils.generateJwtToken(userDetails, 86400000L);
+
+        User user =userRepository.findByEmail(userDetails.getEmail()).orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " +userDetails.getEmail()));
+
+        refreshTokenService.createRefreshToken(user, refreshToken);
 
         List<String> roles = userDetails.getAuthorities().stream().map(item -> item.getAuthority())
                 .collect(Collectors.toList());
 
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(userDetails.getId());
 
-        return ResponseEntity.ok(new JwtResponse(jwt, refreshToken.getToken(), userDetails.getId(),
+
+        return ResponseEntity.ok(new JwtResponse(accessToken, refreshToken, userDetails.getId(),
                 userDetails.getUsername(), userDetails.getEmail(), roles));
     }
 
@@ -104,16 +112,13 @@ public class UserController {
     @PostMapping("/refreshtoken")
     public ResponseEntity<?> refreshtoken(@Valid @RequestBody TokenRefreshRequest request) {
         String requestRefreshToken = request.getRefreshToken();
+        if(jwtUtils.validateJwtToken(requestRefreshToken)){
+            UserDetailsImpl userDetails = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            String newAccessToken = jwtUtils.generateJwtToken(userDetails, 7200000L);
+            return ResponseEntity.ok(newAccessToken);
+        }
 
-        return refreshTokenService.findByToken(requestRefreshToken)
-                .map(refreshTokenService::verifyExpiration)
-                .map(RefreshToken::getUser)
-                .map(user -> {
-                    String token = jwtUtils.generateTokenFromUsername(user.getUsername());
-                    return ResponseEntity.ok(new TokenRefreshResponse(token, requestRefreshToken));
-                })
-                .orElseThrow(() -> new TokenRefreshException(requestRefreshToken,
-                        "Refresh token is not in database!"));
+        return ResponseEntity.badRequest().body(new MessageResponse("Error: Could not validate the token!"));
     }
 
     @GetMapping("/test")

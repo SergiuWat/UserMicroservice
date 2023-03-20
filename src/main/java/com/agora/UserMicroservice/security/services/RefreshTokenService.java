@@ -1,6 +1,7 @@
 package com.agora.UserMicroservice.security.services;
 
 import com.agora.UserMicroservice.entity.RefreshToken;
+import com.agora.UserMicroservice.entity.User;
 import com.agora.UserMicroservice.exception.TokenRefreshException;
 import com.agora.UserMicroservice.repository.RefreshTokenRepository;
 import com.agora.UserMicroservice.repository.UserRepository;
@@ -28,22 +29,17 @@ public class RefreshTokenService {
         return refreshTokenRepository.findByToken(token);
     }
 
-    public RefreshToken createRefreshToken(Long userId) {
+    public void createRefreshToken(User user, String token) {
         RefreshToken refreshToken = new RefreshToken();
 
-        refreshToken.setUser(userRepository.findById(userId).get());
-        refreshToken.setExpiryDate(Instant.now().plusMillis(refreshTokenDurationMs));
-        refreshToken.setToken(UUID.randomUUID().toString());
+        refreshToken.setUser(user);
+        refreshToken.setToken(token);
 
-        refreshToken = refreshTokenRepository.save(refreshToken);
-        return refreshToken;
+        refreshTokenRepository.save(refreshToken);
+
     }
 
     public RefreshToken verifyExpiration(RefreshToken token) {
-        if (token.getExpiryDate().compareTo(Instant.now()) < 0) {
-            refreshTokenRepository.delete(token);
-            throw new TokenRefreshException(token.getToken(), "Refresh token was expired. Please make a new signin request");
-        }
 
         return token;
     }

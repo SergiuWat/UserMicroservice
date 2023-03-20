@@ -13,19 +13,15 @@ import java.util.Date;
 public class JwtUtils {
     private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
 
-
-    private String jwtSecret = "bezKoderSecretKeybezKoderSecretKeybezKoderSecretKeybezKoderSecretKeybezKoderSecretKeybezKoderSecretKeybezKoderSecretKey";
-
-
-    private int jwtExpirationMs = 86400000;
-
-    public String generateJwtToken(UserDetailsImpl userPrincipal) {
-        return generateTokenFromUsername(userPrincipal.getEmail());
+   // private String jwtSecret = "bezKoderSecretKeybezKoderSecretKeybezKoderSecretKeybezKoderSecretKeybezKoderSecretKeybezKoderSecretKeybezKoderSecretKey";
+    private String jwtSecret = "3a75a0ff8d9db64d051c56d22a3cfc0355786b107b1c60d136a578b8fe456dba3a75a0ff8d9db64d051c56d22a3cfc0355786b107b1c60d136a578b8fe456dba";
+    public String generateJwtToken(UserDetailsImpl userPrincipal,Long jwtExpirationTime) {
+        return generateTokenFromUsername(userPrincipal.getEmail(), jwtExpirationTime);
     }
 
-    public String generateTokenFromUsername(String username) {
+    public String generateTokenFromUsername(String username, Long jwtExpirationTime) {
         return Jwts.builder().setSubject(username).setIssuedAt(new Date())
-                .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs)).signWith(SignatureAlgorithm.HS512, jwtSecret)
+                .setExpiration(new Date((new Date()).getTime() + jwtExpirationTime)).signWith(SignatureAlgorithm.HS512, jwtSecret)
                 .compact();
     }
 
