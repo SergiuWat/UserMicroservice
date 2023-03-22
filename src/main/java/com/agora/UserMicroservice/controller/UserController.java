@@ -109,22 +109,6 @@ public class UserController {
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
     }
 
-    @PostMapping("/refreshtoken")
-    public ResponseEntity<?> refreshtoken(@Valid @RequestBody TokenRefreshRequest request) {
-        String requestRefreshToken = request.getRefreshToken();
-        if(jwtUtils.validateJwtToken(requestRefreshToken)){
-            UserDetailsImpl userDetails = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-            String newAccessToken = jwtUtils.generateJwtToken(userDetails, 7200000L);
-            return ResponseEntity.ok(newAccessToken);
-        }
-
-        return ResponseEntity.badRequest().body(new MessageResponse("Error: Could not validate the token!"));
-    }
-
-    @GetMapping("/test")
-    public String test(){
-        return "test";
-    }
     @PostMapping("/signout")
     public ResponseEntity<?> logoutUser() {
         UserDetailsImpl userDetails = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
