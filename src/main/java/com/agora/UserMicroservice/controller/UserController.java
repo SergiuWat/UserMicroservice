@@ -1,32 +1,21 @@
 package com.agora.UserMicroservice.controller;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import javax.validation.Valid;
-
 import com.agora.UserMicroservice.entity.ERole;
-import com.agora.UserMicroservice.entity.RefreshToken;
 import com.agora.UserMicroservice.entity.Role;
 import com.agora.UserMicroservice.entity.User;
-import com.agora.UserMicroservice.exception.TokenRefreshException;
 import com.agora.UserMicroservice.payload.request.LoginRequest;
 import com.agora.UserMicroservice.payload.request.SignupRequest;
-import com.agora.UserMicroservice.payload.request.TokenRefreshRequest;
 import com.agora.UserMicroservice.payload.response.JwtResponse;
 import com.agora.UserMicroservice.payload.response.MessageResponse;
-import com.agora.UserMicroservice.payload.response.TokenRefreshResponse;
 import com.agora.UserMicroservice.repository.RoleRepository;
 import com.agora.UserMicroservice.repository.UserRepository;
+import com.agora.UserMicroservice.security.WebSecurityConfig;
 import com.agora.UserMicroservice.security.jwt.JwtUtils;
 import com.agora.UserMicroservice.security.services.RefreshTokenService;
 import com.agora.UserMicroservice.security.services.UserDetailsImpl;
-import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -34,6 +23,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+
+import javax.validation.Valid;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -117,4 +114,57 @@ public class UserController {
         return ResponseEntity.ok(new MessageResponse("Log out successful!"));
     }
 
-}
+
+
+    @DeleteMapping("/users/{email}")
+    public ResponseEntity<String> deleteUserByEmail(@PathVariable("email") String email, @RequestHeader(value="Authorization") String token) {
+        token = token.split(" ")[1].trim();
+
+        if (jwtUtils.validateJwtToken(token)) {
+
+            User user = userRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User Not Found with email: " + email));
+            refreshTokenService.deleteByUserId(user.getId());
+            userRepository.delete(user);
+
+            return ResponseEntity.ok("User with email: " + email + " has been deleted successfully");
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+
+    }//deleteUserByEmail
+
+    @PutMapping("/users/password")
+
+    public ResponseEntity<?> updateUserPassword(@Valid @RequestBody Map<String, String> passwordRequest,
+                                                @RequestHeader(value="Authorization") String token) {
+
+        token = token.split(" ")[1].trim();
+
+        if (jwtUtils.validateJwtToken(token)) {
+
+            UserDetailsImpl userDetails = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+            User user = userRepository.findByEmail(userDetails.getEmail()).orElseThrow(() -> new UsernameNotFoundException
+                    ("User Not Found with email: " + userDetails.getEmail()));
+
+            String oldPassword = passwordRequest.get("CurrentPassword");
+            String newPassword = passwordRequest.get("newPassword");
+
+            if (oldPassword == null || newPassword == null) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Error: Old and new passwords are required! :P"));
+            }
+
+            if (!encoder.matches(oldPassword, user.getPassword())) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Error: Invalid old password!!!"));
+            }
+
+            user.setPassword(encoder.encode(newPassword));
+            userRepository.save(user);
+
+            return ResponseEntity.ok(new MessageResponse("Password updated successfully! :3"));
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new MessageResponse("Error: Unauthorized!"));
+        }
+    }//updatePass
+
+}//UserController
