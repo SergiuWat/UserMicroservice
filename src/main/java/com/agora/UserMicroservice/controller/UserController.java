@@ -3,19 +3,15 @@ package com.agora.UserMicroservice.controller;
 import com.agora.UserMicroservice.entity.ERole;
 import com.agora.UserMicroservice.entity.Role;
 import com.agora.UserMicroservice.entity.User;
-import com.agora.UserMicroservice.payload.request.BalanceUpdateRequest;
 import com.agora.UserMicroservice.payload.request.LoginRequest;
 import com.agora.UserMicroservice.payload.request.SignupRequest;
-import com.agora.UserMicroservice.payload.request.TokenRefreshRequest;
 import com.agora.UserMicroservice.payload.response.JwtResponse;
 import com.agora.UserMicroservice.payload.response.MessageResponse;
 import com.agora.UserMicroservice.repository.RoleRepository;
 import com.agora.UserMicroservice.repository.UserRepository;
-import com.agora.UserMicroservice.security.WebSecurityConfig;
 import com.agora.UserMicroservice.security.jwt.JwtUtils;
 import com.agora.UserMicroservice.security.services.RefreshTokenService;
 import com.agora.UserMicroservice.security.services.UserDetailsImpl;
-import org.apache.el.parser.Token;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -124,6 +120,21 @@ public class UserController {
             return ResponseEntity.ok(new MessageResponse("Your account balance is: " + userDetails.getBalance()));
         } else {
             return ResponseEntity.badRequest().body(new MessageResponse("Your account balance cannot be accessed."));
+        }
+    }
+
+    @PostMapping("/update_balance")
+    public ResponseEntity<?> updateBalance(@Valid @RequestHeader(value = "Authorization") String token, @RequestBody Map<String, Float> requestBody) {
+        token = token.split(" ")[1].trim();
+        if (jwtUtils.validateJwtToken(token)) {
+            Float new_balance = requestBody.get("balance");
+            UserDetailsImpl userDetails = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            User user = userRepository.findByEmail(userDetails.getEmail()).orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + userDetails.getEmail()));
+            user.setBalance(new_balance);
+            userRepository.save(user);
+            return ResponseEntity.ok(new MessageResponse("New balance: " + user.getBalance()));
+        } else {
+            return ResponseEntity.badRequest().body(new MessageResponse("Balance could not be updated!"));
         }
     }
 
