@@ -3,8 +3,10 @@ package com.agora.UserMicroservice.controller;
 import com.agora.UserMicroservice.entity.ERole;
 import com.agora.UserMicroservice.entity.Role;
 import com.agora.UserMicroservice.entity.User;
+import com.agora.UserMicroservice.payload.request.BalanceUpdateRequest;
 import com.agora.UserMicroservice.payload.request.LoginRequest;
 import com.agora.UserMicroservice.payload.request.SignupRequest;
+import com.agora.UserMicroservice.payload.request.TokenRefreshRequest;
 import com.agora.UserMicroservice.payload.response.JwtResponse;
 import com.agora.UserMicroservice.payload.response.MessageResponse;
 import com.agora.UserMicroservice.repository.RoleRepository;
@@ -13,6 +15,7 @@ import com.agora.UserMicroservice.security.WebSecurityConfig;
 import com.agora.UserMicroservice.security.jwt.JwtUtils;
 import com.agora.UserMicroservice.security.services.RefreshTokenService;
 import com.agora.UserMicroservice.security.services.UserDetailsImpl;
+import org.apache.el.parser.Token;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -68,13 +71,12 @@ public class UserController {
 
         String refreshToken = jwtUtils.generateJwtToken(userDetails, 86400000L);
 
-        User user =userRepository.findByEmail(userDetails.getEmail()).orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " +userDetails.getEmail()));
+        User user = userRepository.findByEmail(userDetails.getEmail()).orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + userDetails.getEmail()));
 
         refreshTokenService.createRefreshToken(user, refreshToken);
 
         List<String> roles = userDetails.getAuthorities().stream().map(item -> item.getAuthority())
                 .collect(Collectors.toList());
-
 
 
         return ResponseEntity.ok(new JwtResponse(accessToken, refreshToken, userDetails.getId(),
@@ -114,10 +116,19 @@ public class UserController {
         return ResponseEntity.ok(new MessageResponse("Log out successful!"));
     }
 
-
+    @GetMapping("/check_balance")
+    public ResponseEntity<?> checkBalance(@Valid @RequestHeader(value = "Authorization") String token) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        token = token.split(" ")[1].trim();
+        if (jwtUtils.validateJwtToken(token)) {
+            return ResponseEntity.ok(new MessageResponse("Your account balance is: " + userDetails.getBalance()));
+        } else {
+            return ResponseEntity.badRequest().body(new MessageResponse("Your account balance cannot be accessed."));
+        }
+    }
 
     @DeleteMapping("/users/{email}")
-    public ResponseEntity<String> deleteUserByEmail(@PathVariable("email") String email, @RequestHeader(value="Authorization") String token) {
+    public ResponseEntity<String> deleteUserByEmail(@PathVariable("email") String email, @RequestHeader(value = "Authorization") String token) {
         token = token.split(" ")[1].trim();
 
         if (jwtUtils.validateJwtToken(token)) {
@@ -136,7 +147,7 @@ public class UserController {
     @PutMapping("/users/password")
 
     public ResponseEntity<?> updateUserPassword(@Valid @RequestBody Map<String, String> passwordRequest,
-                                                @RequestHeader(value="Authorization") String token) {
+                                                @RequestHeader(value = "Authorization") String token) {
 
         token = token.split(" ")[1].trim();
 

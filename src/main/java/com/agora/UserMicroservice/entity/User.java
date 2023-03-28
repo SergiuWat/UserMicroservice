@@ -38,6 +38,9 @@ public class User {
     private String password;
 
     //balanta
+    @NotBlank
+    @Size(max = 10)
+    private Float balance;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(	name = "user_roles",
@@ -52,6 +55,11 @@ public class User {
         this.username = username;
         this.email = email;
         this.password = password;
+    }
+
+    public User(String username, Float balance) {
+        this.username = username;
+        this.balance = balance;
     }
 
     public Long getId() {
@@ -93,5 +101,9 @@ public class User {
     public void setRoles(Set<Role> roles) {
         this.roles = roles;
     }
+
+    public Float getBalance() { return balance; }
+
+    public void setBalance(Float balance){ this.balance = balance;}
 
 }
