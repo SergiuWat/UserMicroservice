@@ -12,6 +12,7 @@ import com.agora.UserMicroservice.repository.UserRepository;
 import com.agora.UserMicroservice.security.jwt.JwtUtils;
 import com.agora.UserMicroservice.security.services.RefreshTokenService;
 import com.agora.UserMicroservice.security.services.UserDetailsImpl;
+import com.agora.UserMicroservice.service.EmailSenderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -40,6 +41,9 @@ public class UserController {
 
     @Autowired
     UserRepository userRepository;
+
+    @Autowired
+    EmailSenderService emailSenderService;
 
     @Autowired
     RoleRepository roleRepository;
@@ -188,5 +192,11 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new MessageResponse("Error: Unauthorized!"));
         }
     }//updatePass
+
+    @GetMapping("/sendEmail")
+    public void sendEmail() {
+        emailSenderService.sendEmail("rome_rome22rome_rome2@yahoo.com","text","test");
+
+    }
 
 }//UserController

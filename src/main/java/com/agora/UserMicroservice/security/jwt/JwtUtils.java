@@ -48,12 +48,4 @@ public class JwtUtils {
         return false;
     }
 
-    public String parseJwt(String token) {
-        Claims claims = Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(token).getBody();
-        return claims.getSubject();
-    }
-    public String getEmailFromJwtToken(String token) {
-        return Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(token).getBody().getSubject();
-    }
-
 }//Jwt
