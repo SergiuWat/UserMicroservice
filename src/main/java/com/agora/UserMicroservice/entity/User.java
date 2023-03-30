@@ -42,6 +42,8 @@ public class User {
     @Size(max = 10)
     private Float balance;
 
+    private Boolean validation;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(	name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),
@@ -55,6 +57,14 @@ public class User {
         this.username = username;
         this.email = email;
         this.password = password;
+    }
+
+    public Boolean getValidation() {
+        return validation;
+    }
+
+    public void setValidation(Boolean validation) {
+        this.validation = validation;
     }
 
     public User(String username, Float balance) {

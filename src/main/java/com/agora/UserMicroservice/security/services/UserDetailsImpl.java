@@ -23,18 +23,21 @@ public class UserDetailsImpl implements UserDetails {
     @JsonIgnore
     private String password;
 
+    private Boolean validation;
+
     private Float balance;
 
     private Collection<? extends GrantedAuthority> authorities;
 
     public UserDetailsImpl(Long id, String username, String email, String password, Float balance,
-                           Collection<? extends GrantedAuthority> authorities) {
+                           Collection<? extends GrantedAuthority> authorities, Boolean validation) {
         this.id = id;
         this.username = username;
         this.email = email;
         this.password = password;
         this.balance = balance;
         this.authorities = authorities;
+        this.validation = validation;
     }
 
     public static UserDetailsImpl build(User user) {
@@ -48,7 +51,8 @@ public class UserDetailsImpl implements UserDetails {
                 user.getEmail(),
                 user.getPassword(),
                 user.getBalance(),
-                authorities);
+                authorities,
+                user.getValidation());
     }
 
     @Override
@@ -62,6 +66,14 @@ public class UserDetailsImpl implements UserDetails {
 
     public String getEmail() {
         return email;
+    }
+
+    public Boolean getValidation() {
+        return validation;
+    }
+
+    public void setValidation(Boolean validation) {
+        this.validation = validation;
     }
 
     @Override

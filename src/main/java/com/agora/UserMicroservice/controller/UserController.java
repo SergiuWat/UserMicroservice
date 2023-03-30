@@ -1,12 +1,11 @@
 package com.agora.UserMicroservice.controller;
 
-import com.agora.UserMicroservice.entity.ERole;
-import com.agora.UserMicroservice.entity.Role;
-import com.agora.UserMicroservice.entity.User;
+import com.agora.UserMicroservice.entity.*;
 import com.agora.UserMicroservice.payload.request.LoginRequest;
 import com.agora.UserMicroservice.payload.request.SignupRequest;
 import com.agora.UserMicroservice.payload.response.JwtResponse;
 import com.agora.UserMicroservice.payload.response.MessageResponse;
+import com.agora.UserMicroservice.repository.CodesRepository;
 import com.agora.UserMicroservice.repository.RoleRepository;
 import com.agora.UserMicroservice.repository.UserRepository;
 import com.agora.UserMicroservice.security.jwt.JwtUtils;
@@ -26,10 +25,9 @@ import org.springframework.web.bind.annotation.*;
 
 
 import javax.validation.Valid;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.security.SecureRandom;
+import java.time.Instant;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -38,6 +36,9 @@ import java.util.stream.Collectors;
 public class UserController {
     @Autowired
     AuthenticationManager authenticationManager;
+
+    @Autowired
+    CodesRepository codesRepository;
 
     @Autowired
     UserRepository userRepository;
@@ -66,6 +67,9 @@ public class UserController {
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        if(!userDetails.getValidation()){
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
 
         String accessToken = jwtUtils.generateJwtToken(userDetails, 900000L);
 
@@ -101,8 +105,9 @@ public class UserController {
         Role userRole = roleRepository.findByName(ERole.ROLE_USER)
                 .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
         roles.add(userRole);
-
+        user.setValidation(false);
         user.setRoles(roles);
+        user.setBalance(10F);
         userRepository.save(user);
 
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
@@ -193,10 +198,48 @@ public class UserController {
         }
     }//updatePass
 
-    @GetMapping("/sendEmail")
-    public void sendEmail() {
-        emailSenderService.sendEmail("rome_rome22rome_rome2@yahoo.com","text","test");
+    @GetMapping("/sendEmail/{email}")
+    public ResponseEntity<?> sendEmail(@PathVariable("email") String email) {
+        Codes codes = new Codes();
+        User user = userRepository.findByEmail(email).orElseThrow();
+        int safeguard=0;
+        while(true){
+            if(safeguard == 10){
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            }
+            String code = emailSenderService.getRandomCode();
+            Codes tempCode = codesRepository.findByCode(code.toString());
+            if(tempCode==null){
+                codes.setCode(code.toString());
+                codes.setExpirationDate(Instant.now().toEpochMilli()+900000);
+                codes.setUser(user);
+                codesRepository.save(codes);
+
+                emailSenderService.sendEmail(email,"Verification Code","YOUR CODE: "+code.toString());
+               return new ResponseEntity<>(HttpStatus.OK);
+            }
+            safeguard++;
+        }
+    }
+    @PostMapping("/validate_code/{email}")
+    public ResponseEntity<?> validateCode(@PathVariable("email") String email,@RequestBody Map<String, String> code){
+        User user = userRepository.findByEmail(email).orElseThrow();
+        Codes codes = codesRepository.findByCode(code.get("code"));
+        if(!(codes.getCode().isBlank() || codes.getCode().isEmpty())){
+            user.setValidation(true);
+            userRepository.save(user);
+            codesRepository.delete(codes);
+            return new ResponseEntity<>(HttpStatus.OK);
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 
     }
 
+    @PostMapping("/put_role")
+    public String putRole(@RequestBody Map<String,String> roles){
+        Role role=new Role();
+        role.setName(ERole.ROLE_USER);
+        roleRepository.save(role);
+        return "GOOD JOB";
+    }
 }//UserController

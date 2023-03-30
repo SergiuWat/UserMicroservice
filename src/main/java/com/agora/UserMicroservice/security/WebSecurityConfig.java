@@ -60,7 +60,7 @@ public class WebSecurityConfig {
         http.cors().and().csrf().disable()
                 .exceptionHandling().authenticationEntryPoint(unauthorizedHandler).and()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-                .authorizeRequests().requestMatchers("/signup","/signin", "/sendEmail").permitAll()
+                .authorizeRequests().requestMatchers("/signup","/signin", "/sendEmail/**","/sendEmail","/validate_code/**","/validate_code","/put_role").permitAll()
                 .anyRequest().fullyAuthenticated();
 
         http.authenticationProvider(authenticationProvider());
