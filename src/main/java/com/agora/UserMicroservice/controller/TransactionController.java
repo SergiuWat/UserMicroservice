@@ -13,9 +13,8 @@ import org.springframework.web.bind.annotation.*;
 import com.agora.UserMicroservice.service.TransactionService;
 
 import javax.validation.Valid;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -58,6 +57,36 @@ public class TransactionController {
 
         }
         return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+    }
+
+    @GetMapping("/get_popular_transactions")
+    public ResponseEntity<?> getPopularTransactions(@Valid @RequestHeader(value = "Authorization") String token) {
+        token = token.split(" ")[1].trim();
+        if (jwtUtils.validateJwtToken(token)) {
+            List<Transaction> lista = transactionRepository.findAll();
+            Map<String, List<Transaction>> lista_grupata = lista.stream().collect(Collectors.groupingBy(w -> w.getDatasetName()));
+            Map<String, Integer> lista_finala = new HashMap<>();
+            for (Map.Entry<String, List<Transaction>> entry : lista_grupata.entrySet()) {
+                lista_finala.put(entry.getKey(), entry.getValue().size());
+            }
+            return new ResponseEntity<>(lista_finala, HttpStatus.OK);
+        }
+        return new ResponseEntity<>(new ArrayList<>(),HttpStatus.BAD_REQUEST);
+    }
+
+    @GetMapping("/get_transactions_price")
+    public ResponseEntity<?> getTransactionsPrice(@Valid @RequestHeader(value = "Authorization") String token) {
+        token = token.split(" ")[1].trim();
+        if (jwtUtils.validateJwtToken(token)) {
+            List<Transaction> lista = transactionRepository.findAll();
+            Map<String, List<Transaction>> lista_grupata = lista.stream().collect(Collectors.groupingBy(w -> w.getDatasetName()));
+            Map<String, Float> lista_finala = new HashMap<>();
+            for (Map.Entry<String, List<Transaction>> entry : lista_grupata.entrySet()) {
+                lista_finala.put(entry.getKey(), entry.getValue().get(0).getPrice());
+            }
+            return new ResponseEntity<>(lista_finala, HttpStatus.OK);
+        }
+        return new ResponseEntity<>(new ArrayList<>(),HttpStatus.BAD_REQUEST);
     }
 
 }
