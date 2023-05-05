@@ -50,7 +50,7 @@ public class TransactionController {
             transaction.setSender("ADMIN");
             transaction.setDatasetName(transactionRequest.getDatasetName());
             transaction.setTransactionDate((new Date((new Date()).getTime())).toString());
-            transaction.setPrice(1.5F);
+            transaction.setPrice(transactionRequest.getDatasetPrice());
             transaction.setRecepient(userDetails.getEmail());
             transactionRepository.save(transaction);
             return new ResponseEntity<>(HttpStatus.CREATED);

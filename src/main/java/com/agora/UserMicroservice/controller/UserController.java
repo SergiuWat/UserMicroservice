@@ -139,7 +139,7 @@ public class UserController {
             Float new_balance = requestBody.get("balance");
             UserDetailsImpl userDetails = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             User user = userRepository.findByEmail(userDetails.getEmail()).orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + userDetails.getEmail()));
-            user.setBalance(new_balance);
+            user.setBalance(user.getBalance() + new_balance);
             userRepository.save(user);
             return ResponseEntity.ok(new MessageResponse("New balance: " + user.getBalance()));
         } else {
